@@ -1,71 +1,83 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Coffee, Sun, Cookie, Moon } from "lucide-react";
-
-interface MenuItem {
-  name: string;
-  description: string;
-  category: string;
-}
+import { supabase } from "@/integrations/supabase/client";
 
 interface MealData {
   title: string;
   icon: React.ReactNode;
   time: string;
-  items: MenuItem[];
+  items: string;
   color: string;
 }
 
 const MenuSection = () => {
+  const [menu, setMenu] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTodayMenu();
+  }, []);
+
+  const fetchTodayMenu = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from("daily_menus")
+        .select("*")
+        .eq("menu_date", today)
+        .maybeSingle();
+
+      if (error) throw error;
+      setMenu(data);
+    } catch (error) {
+      console.error("Error fetching menu:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const todayMenu: MealData[] = [
     {
       title: "Breakfast",
       icon: <Coffee className="h-6 w-6" />,
       time: "7:00 AM - 9:00 AM",
       color: "from-orange-400 to-orange-600",
-      items: [
-        { name: "Idli Sambar", description: "Soft steamed rice cakes with lentil curry", category: "Main" },
-        { name: "Vada", description: "Crispy lentil donuts", category: "Side" },
-        { name: "Masala Tea", description: "Fresh brewed spiced tea", category: "Beverage" },
-      ],
+      items: menu?.breakfast || "Not available",
     },
     {
       title: "Lunch",
       icon: <Sun className="h-6 w-6" />,
       time: "12:30 PM - 2:30 PM",
       color: "from-yellow-400 to-amber-600",
-      items: [
-        { name: "Chapati", description: "Whole wheat flatbread", category: "Main" },
-        { name: "Dal Fry", description: "Tempered lentils", category: "Curry" },
-        { name: "Paneer Butter Masala", description: "Cottage cheese in creamy tomato gravy", category: "Curry" },
-        { name: "Jeera Rice", description: "Cumin flavored basmati rice", category: "Rice" },
-        { name: "Salad & Curd", description: "Fresh vegetables and yogurt", category: "Side" },
-      ],
+      items: menu?.lunch || "Not available",
     },
     {
       title: "Snacks",
       icon: <Cookie className="h-6 w-6" />,
       time: "5:00 PM - 6:00 PM",
       color: "from-pink-400 to-rose-600",
-      items: [
-        { name: "Samosa", description: "Crispy pastry with potato filling", category: "Main" },
-        { name: "Coffee", description: "Hot filter coffee", category: "Beverage" },
-      ],
+      items: menu?.snacks || "Not available",
     },
     {
       title: "Dinner",
       icon: <Moon className="h-6 w-6" />,
       time: "8:00 PM - 10:00 PM",
       color: "from-indigo-400 to-purple-600",
-      items: [
-        { name: "Roti", description: "Indian flatbread", category: "Main" },
-        { name: "Mixed Vegetable Curry", description: "Seasonal vegetables in curry", category: "Curry" },
-        { name: "Dal Tadka", description: "Yellow lentils with tempering", category: "Curry" },
-        { name: "Steamed Rice", description: "Plain basmati rice", category: "Rice" },
-        { name: "Papad & Pickle", description: "Crispy wafer and tangy pickle", category: "Side" },
-      ],
+      items: menu?.dinner || "Not available",
     },
   ];
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-muted-foreground">Loading today's menu...</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-background">
@@ -78,7 +90,7 @@ const MenuSection = () => {
             What's Cooking Today?
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Fresh, delicious meals prepared with love for our hostel family
+            {menu ? "Fresh, delicious meals prepared with love for our hostel family" : "No menu available for today"}
           </p>
         </div>
 
@@ -100,18 +112,8 @@ const MenuSection = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="space-y-4">
-                  {meal.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start gap-4">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">{item.name}</h4>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0">
-                        {item.category}
-                      </Badge>
-                    </div>
-                  ))}
+                <div className="text-foreground">
+                  <p className="text-lg">{meal.items}</p>
                 </div>
               </CardContent>
             </Card>

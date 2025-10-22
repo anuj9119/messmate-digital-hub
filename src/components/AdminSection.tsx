@@ -1,9 +1,94 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Bell, Calendar, Users } from "lucide-react";
+import { Users, Calendar, Bell, Save } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const AdminSection = () => {
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { toast } = useToast();
+  const [menuDate, setMenuDate] = useState(new Date().toISOString().split('T')[0]);
+  const [breakfast, setBreakfast] = useState("");
+  const [lunch, setLunch] = useState("");
+  const [snacks, setSnacks] = useState("");
+  const [dinner, setDinner] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchTodayMenu();
+  }, [menuDate]);
+
+  const fetchTodayMenu = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("daily_menus")
+        .select("*")
+        .eq("menu_date", menuDate)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setBreakfast(data.breakfast || "");
+        setLunch(data.lunch || "");
+        setSnacks(data.snacks || "");
+        setDinner(data.dinner || "");
+      } else {
+        setBreakfast("");
+        setLunch("");
+        setSnacks("");
+        setDinner("");
+      }
+    } catch (error) {
+      console.error("Error fetching menu:", error);
+    }
+  };
+
+  const handleSaveMenu = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("daily_menus")
+        .upsert({
+          menu_date: menuDate,
+          breakfast,
+          lunch,
+          snacks,
+          dinner,
+        }, {
+          onConflict: 'menu_date'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Menu updated!",
+        description: "The daily menu has been saved successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save menu",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (roleLoading) {
+    return <div className="py-20 text-center">Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <section className="py-16 bg-background">
       <div className="container mx-auto px-4">
@@ -15,17 +100,11 @@ const AdminSection = () => {
             Manage Your Mess Efficiently
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Upload menus, track payments, and notify students - all in one place
+            Update menus, track payments, and notify students - all in one place
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          <AdminCard 
-            icon={<Upload className="h-8 w-8" />}
-            title="Upload Menu"
-            description="Add today's menu for all four meals"
-            color="from-primary to-orange-600"
-          />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
           <AdminCard 
             icon={<Bell className="h-8 w-8" />}
             title="Send Notifications"
@@ -46,22 +125,67 @@ const AdminSection = () => {
           />
         </div>
 
-        <div className="mt-12 max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <Card className="shadow-xl">
             <CardHeader>
-              <CardTitle className="text-2xl">Quick Menu Upload</CardTitle>
-              <CardDescription>Update today's menu for all students to see</CardDescription>
+              <CardTitle className="text-2xl">Update Daily Menu</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <MenuUploadField label="Breakfast" />
-                <MenuUploadField label="Lunch" />
-                <MenuUploadField label="Snacks" />
-                <MenuUploadField label="Dinner" />
+              <div className="space-y-2">
+                <Label htmlFor="menu-date">Date</Label>
+                <Input
+                  id="menu-date"
+                  type="date"
+                  value={menuDate}
+                  onChange={(e) => setMenuDate(e.target.value)}
+                />
               </div>
-              <Button className="w-full" size="lg" variant="secondary">
-                <Upload className="mr-2 h-5 w-5" />
-                Publish Menu & Notify Students
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="breakfast">Breakfast</Label>
+                  <Input
+                    id="breakfast"
+                    placeholder="e.g., Idli, Sambar, Tea"
+                    value={breakfast}
+                    onChange={(e) => setBreakfast(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lunch">Lunch</Label>
+                  <Input
+                    id="lunch"
+                    placeholder="e.g., Rice, Dal, Sabzi"
+                    value={lunch}
+                    onChange={(e) => setLunch(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="snacks">Snacks</Label>
+                  <Input
+                    id="snacks"
+                    placeholder="e.g., Samosa, Tea"
+                    value={snacks}
+                    onChange={(e) => setSnacks(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dinner">Dinner</Label>
+                  <Input
+                    id="dinner"
+                    placeholder="e.g., Roti, Dal, Sabzi"
+                    value={dinner}
+                    onChange={(e) => setDinner(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={handleSaveMenu} 
+                disabled={isLoading}
+                className="w-full"
+                size="lg"
+              >
+                <Save className="mr-2 h-5 w-5" />
+                {isLoading ? "Saving..." : "Save Menu"}
               </Button>
             </CardContent>
           </Card>
@@ -87,18 +211,6 @@ const AdminCard = ({ icon, title, description, color }: {
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
-  );
-};
-
-const MenuUploadField = ({ label }: { label: string }) => {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">{label}</label>
-      <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
-        <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-        <p className="text-xs text-muted-foreground">Click to add items</p>
-      </div>
-    </div>
   );
 };
 
