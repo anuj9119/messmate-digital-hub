@@ -4,11 +4,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, UtensilsCrossed, Calendar, CheckCircle2 } from "lucide-react";
+import { QrCode, Clock, ShieldCheck, Zap, CreditCard } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import MenuSection from "@/components/MenuSection";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Footer from "@/components/Footer";
 
 const StudentDashboard = () => {
   const { user, isLoading } = useAuth();
@@ -90,108 +92,124 @@ const StudentDashboard = () => {
     }
   };
 
+  const getMealPrice = (mealType: string) => {
+    const prices: Record<string, string> = {
+      breakfast: "₹40",
+      lunch: "₹60",
+      snacks: "₹30",
+      dinner: "₹60"
+    };
+    return prices[mealType] || "₹0";
+  };
+
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-primary/5">
+    <div className="min-h-screen">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Student Dashboard</h1>
-          <p className="text-muted-foreground">Generate your meal tokens and view today's menu</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Token Generation Card */}
-          <Card className="border-2 border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <QrCode className="h-6 w-6 text-primary" />
-                Generate Meal Token
-              </CardTitle>
-              <CardDescription>Select your meal and generate a token (No payment required for testing)</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Meal Type</label>
-                <Select value={selectedMeal} onValueChange={setSelectedMeal}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a meal..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="breakfast">Breakfast</SelectItem>
-                    <SelectItem value="lunch">Lunch</SelectItem>
-                    <SelectItem value="snacks">Snacks</SelectItem>
-                    <SelectItem value="dinner">Dinner</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button 
-                onClick={handleGenerateToken} 
-                disabled={isGenerating || !selectedMeal}
-                className="w-full"
-                variant="hero"
-              >
-                {isGenerating ? "Generating..." : "Generate Token (Free)"}
-              </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                Payment integration will be added later
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Current Token Display */}
-          <Card className="border-2 border-green-500/20 bg-gradient-to-br from-background to-green-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-6 w-6 text-green-500" />
-                Your Active Token
-              </CardTitle>
-              <CardDescription>Today's meal token</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {currentToken ? (
-                <div className="space-y-4">
-                  <div className="bg-white dark:bg-gray-900 p-6 rounded-lg text-center">
-                    <div className="text-6xl font-mono font-bold text-primary mb-2">
-                      {currentToken.token_code}
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <UtensilsCrossed className="h-4 w-4" />
-                      <span className="capitalize">{currentToken.meal_type}</span>
-                      <Calendar className="h-4 w-4 ml-2" />
-                      <span>{new Date(currentToken.meal_date).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-                      currentToken.is_used 
-                        ? "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" 
-                        : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                    }`}>
-                      {currentToken.is_used ? "Used" : "Valid"}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <QrCode className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No active token for today</p>
-                  <p className="text-sm">Generate one to access your meals</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Today's Menu */}
+      <div className="pt-16">
         <MenuSection />
-      </main>
+        
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <Badge className="mb-4 bg-accent/10 text-accent hover:bg-accent/20">
+                For Day Scholars
+              </Badge>
+              <h2 className="text-4xl font-bold text-foreground mb-4">
+                Quick & Secure Payments
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Pay online, get your digital token instantly, and skip the queue!
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Payment/Token Generation Card */}
+              <Card className="shadow-lg hover:shadow-xl transition-all">
+                <CardHeader className="text-center">
+                  <div className="mx-auto bg-gradient-to-br from-accent to-accent/70 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                    <CreditCard className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl">Pay for Your Meal</CardTitle>
+                  <CardDescription>Select meal type and get token (Free for now)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Select value={selectedMeal} onValueChange={setSelectedMeal}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select meal type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="breakfast">Breakfast - ₹40</SelectItem>
+                      <SelectItem value="lunch">Lunch - ₹60</SelectItem>
+                      <SelectItem value="snacks">Snacks - ₹30</SelectItem>
+                      <SelectItem value="dinner">Dinner - ₹60</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleGenerateToken} 
+                    disabled={isGenerating || !selectedMeal}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isGenerating ? "Generating..." : "Generate Token (Free)"}
+                  </Button>
+                  <div className="flex items-center justify-center gap-4 pt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <ShieldCheck className="h-4 w-4" />
+                      Secure
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Zap className="h-4 w-4" />
+                      Instant
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Token Display Card */}
+              <Card className="shadow-lg hover:shadow-xl transition-all border-2 border-primary/20">
+                <CardHeader className="text-center">
+                  <div className="mx-auto bg-gradient-to-br from-primary to-secondary w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                    <QrCode className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl">Your Token</CardTitle>
+                  <CardDescription>Show this at the counter to collect food</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {currentToken ? (
+                    <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-lg p-8 text-center border-2 border-dashed border-primary/30">
+                      <div className="bg-white p-4 rounded-lg inline-block mb-4 shadow-md">
+                        <QrCode className="h-32 w-32 text-foreground" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-3xl font-bold text-primary">{currentToken.token_code}</p>
+                        <Badge variant="secondary" className="text-sm">
+                          <span className="capitalize">{currentToken.meal_type}</span> - {getMealPrice(currentToken.meal_type)}
+                        </Badge>
+                        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-2">
+                          <Clock className="h-4 w-4" />
+                          Valid for: {new Date(currentToken.meal_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-lg p-8 text-center border-2 border-dashed border-primary/30">
+                      <div className="bg-white p-4 rounded-lg inline-block mb-4 shadow-md">
+                        <QrCode className="h-32 w-32 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground">Generate a token to see it here</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+      </div>
+      <Footer />
     </div>
   );
 };

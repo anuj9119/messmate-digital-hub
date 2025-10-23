@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import Navbar from "@/components/Navbar";
+import MenuSection from "@/components/MenuSection";
 import AdminSection from "@/components/AdminSection";
+import Footer from "@/components/Footer";
 
 const AdminDashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -27,17 +29,13 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-primary/5">
+    <div className="min-h-screen">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage daily menus and view system analytics</p>
-        </div>
-
+      <div className="pt-16">
+        <MenuSection />
         <AdminSection />
-      </main>
+      </div>
+      <Footer />
     </div>
   );
 };

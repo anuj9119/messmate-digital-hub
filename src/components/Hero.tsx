@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, CreditCard, Ticket } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-mess.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -29,15 +32,16 @@ const Hero = () => {
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-            <Button variant="hero" size="lg" className="gap-2">
-              View Today's Menu <ArrowRight className="h-5 w-5" />
+            <Button variant="hero" size="lg" className="gap-2" onClick={() => navigate("/auth")}>
+              Get Started <ArrowRight className="h-5 w-5" />
             </Button>
             <Button 
               variant="outline" 
               size="lg" 
               className="gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white hover:text-primary"
+              onClick={() => navigate("/auth")}
             >
-              Pay for Meal <CreditCard className="h-5 w-5" />
+              Login <CreditCard className="h-5 w-5" />
             </Button>
           </div>
 
