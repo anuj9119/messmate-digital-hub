@@ -20,15 +20,32 @@ const Auth = () => {
   const [signupName, setSignupName] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkSessionAndRedirect = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/");
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        navigate(roleData ? "/admin" : "/student");
       }
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    checkSessionAndRedirect();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        navigate("/");
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        navigate(roleData ? "/admin" : "/student");
       }
     });
 
@@ -40,17 +57,42 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
 
       if (error) throw error;
 
+      // Check user role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      const isUserAdmin = !!roleData;
+
+      // Redirect based on role and selected panel
+      if (userType === "admin" && !isUserAdmin) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have admin privileges",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        return;
+      }
+
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
+
+      // Navigation will be handled by auth state change
+      navigate(isUserAdmin ? "/admin" : "/student");
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -95,6 +137,49 @@ const Auth = () => {
     }
   };
 
+  const [userType, setUserType] = useState<"student" | "admin" | null>(null);
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Utensils className="h-12 w-12 text-primary" />
+            </div>
+            <CardTitle className="text-3xl">MessMate</CardTitle>
+            <CardDescription>Your daily mess menu companion</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-sm text-muted-foreground mb-4">
+              Select your login type to continue
+            </p>
+            <Button 
+              onClick={() => setUserType("student")} 
+              className="w-full h-20 text-lg"
+              variant="outline"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <Utensils className="h-6 w-6" />
+                <span>Student Panel</span>
+              </div>
+            </Button>
+            <Button 
+              onClick={() => setUserType("admin")} 
+              className="w-full h-20 text-lg"
+              variant="hero"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <Utensils className="h-6 w-6" />
+                <span>Admin Panel</span>
+              </div>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
       <Card className="w-full max-w-md">
@@ -102,8 +187,20 @@ const Auth = () => {
           <div className="flex justify-center mb-4">
             <Utensils className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-3xl">MessMate</CardTitle>
-          <CardDescription>Your daily mess menu companion</CardDescription>
+          <CardTitle className="text-3xl">MessMate - {userType === "student" ? "Student" : "Admin"}</CardTitle>
+          <CardDescription>
+            {userType === "student" 
+              ? "Access your meals and tokens" 
+              : "Manage menus and system"}
+          </CardDescription>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setUserType(null)}
+            className="mt-2"
+          >
+            ← Back to selection
+          </Button>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
