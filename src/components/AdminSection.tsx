@@ -1,23 +1,28 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, Bell, Save } from "lucide-react";
+import { Users, Calendar, Bell, Save, Plus, Trash2, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Textarea } from "@/components/ui/textarea";
 
 const AdminSection = () => {
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const { toast } = useToast();
   const [menuDate, setMenuDate] = useState(new Date().toISOString().split('T')[0]);
-  const [breakfast, setBreakfast] = useState("");
-  const [lunch, setLunch] = useState("");
-  const [snacks, setSnacks] = useState("");
-  const [dinner, setDinner] = useState("");
+  const [meals, setMeals] = useState({
+    breakfast: [] as string[],
+    lunch: [] as string[],
+    snacks: [] as string[],
+    dinner: [] as string[]
+  });
   const [isLoading, setIsLoading] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<{ type: keyof typeof meals; index: number } | null>(null);
+  const [newItem, setNewItem] = useState("");
 
   useEffect(() => {
     fetchTodayMenu();
@@ -34,19 +39,47 @@ const AdminSection = () => {
       if (error) throw error;
 
       if (data) {
-        setBreakfast(data.breakfast || "");
-        setLunch(data.lunch || "");
-        setSnacks(data.snacks || "");
-        setDinner(data.dinner || "");
+        setMeals({
+          breakfast: data.breakfast ? data.breakfast.split(',').map((s: string) => s.trim()) : [],
+          lunch: data.lunch ? data.lunch.split(',').map((s: string) => s.trim()) : [],
+          snacks: data.snacks ? data.snacks.split(',').map((s: string) => s.trim()) : [],
+          dinner: data.dinner ? data.dinner.split(',').map((s: string) => s.trim()) : []
+        });
       } else {
-        setBreakfast("");
-        setLunch("");
-        setSnacks("");
-        setDinner("");
+        setMeals({
+          breakfast: [],
+          lunch: [],
+          snacks: [],
+          dinner: []
+        });
       }
     } catch (error) {
       console.error("Error fetching menu:", error);
     }
+  };
+
+  const addItem = (mealType: keyof typeof meals) => {
+    if (newItem.trim()) {
+      setMeals(prev => ({
+        ...prev,
+        [mealType]: [...prev[mealType], newItem.trim()]
+      }));
+      setNewItem("");
+    }
+  };
+
+  const removeItem = (mealType: keyof typeof meals, index: number) => {
+    setMeals(prev => ({
+      ...prev,
+      [mealType]: prev[mealType].filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateItem = (mealType: keyof typeof meals, index: number, value: string) => {
+    setMeals(prev => ({
+      ...prev,
+      [mealType]: prev[mealType].map((item, i) => i === index ? value : item)
+    }));
   };
 
   const handleSaveMenu = async () => {
@@ -56,10 +89,10 @@ const AdminSection = () => {
         .from("daily_menus")
         .upsert({
           menu_date: menuDate,
-          breakfast,
-          lunch,
-          snacks,
-          dinner,
+          breakfast: meals.breakfast.join(', '),
+          lunch: meals.lunch.join(', '),
+          snacks: meals.snacks.join(', '),
+          dinner: meals.dinner.join(', '),
         }, {
           onConflict: 'menu_date'
         });
@@ -89,12 +122,68 @@ const AdminSection = () => {
     return null;
   }
 
+  const MealEditor = ({ mealType, title }: { mealType: keyof typeof meals; title: string }) => (
+    <Card className="shadow-md">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          {title}
+          <Badge variant="secondary">{meals[mealType].length} items</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {meals[mealType].map((item, index) => (
+          <div key={index} className="flex items-center gap-2 group">
+            {editingMeal?.type === mealType && editingMeal?.index === index ? (
+              <Input
+                value={item}
+                onChange={(e) => updateItem(mealType, index, e.target.value)}
+                onBlur={() => setEditingMeal(null)}
+                onKeyPress={(e) => e.key === 'Enter' && setEditingMeal(null)}
+                autoFocus
+                className="flex-1"
+              />
+            ) : (
+              <div className="flex-1 px-3 py-2 bg-muted rounded-md">{item}</div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditingMeal({ type: mealType, index })}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => removeItem(mealType, index)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <div className="flex gap-2 pt-2">
+          <Input
+            placeholder={`Add ${title.toLowerCase()} item...`}
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addItem(mealType)}
+          />
+          <Button onClick={() => addItem(mealType)} size="icon">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <section className="py-16 bg-background">
+    <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <Badge className="mb-4 bg-secondary/10 text-secondary hover:bg-secondary/20">
-            Admin Dashboard
+          <Badge className="mb-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground">
+            🔐 Admin Dashboard
           </Badge>
           <h2 className="text-4xl font-bold text-foreground mb-4">
             Manage Your Mess Efficiently
@@ -125,64 +214,38 @@ const AdminSection = () => {
           />
         </div>
 
-        <div className="max-w-3xl mx-auto">
-          <Card className="shadow-xl">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <Card className="shadow-xl border-2 border-primary/20">
             <CardHeader>
-              <CardTitle className="text-2xl">Update Daily Menu</CardTitle>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                📅 Menu Management
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="menu-date">Date</Label>
+                <Label htmlFor="menu-date">Select Date</Label>
                 <Input
                   id="menu-date"
                   type="date"
                   value={menuDate}
                   onChange={(e) => setMenuDate(e.target.value)}
+                  className="max-w-xs"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="breakfast">Breakfast</Label>
-                  <Input
-                    id="breakfast"
-                    placeholder="e.g., Idli, Sambar, Tea"
-                    value={breakfast}
-                    onChange={(e) => setBreakfast(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lunch">Lunch</Label>
-                  <Input
-                    id="lunch"
-                    placeholder="e.g., Rice, Dal, Sabzi"
-                    value={lunch}
-                    onChange={(e) => setLunch(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="snacks">Snacks</Label>
-                  <Input
-                    id="snacks"
-                    placeholder="e.g., Samosa, Tea"
-                    value={snacks}
-                    onChange={(e) => setSnacks(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dinner">Dinner</Label>
-                  <Input
-                    id="dinner"
-                    placeholder="e.g., Roti, Dal, Sabzi"
-                    value={dinner}
-                    onChange={(e) => setDinner(e.target.value)}
-                  />
-                </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <MealEditor mealType="breakfast" title="🌅 Breakfast" />
+                <MealEditor mealType="lunch" title="🍽️ Lunch" />
+                <MealEditor mealType="snacks" title="☕ Snacks" />
+                <MealEditor mealType="dinner" title="🌙 Dinner" />
               </div>
+
               <Button 
                 onClick={handleSaveMenu} 
                 disabled={isLoading}
                 className="w-full"
                 size="lg"
+                variant="hero"
               >
                 <Save className="mr-2 h-5 w-5" />
                 {isLoading ? "Saving..." : "Save Menu"}
