@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +10,13 @@ import MenuSection from "@/components/MenuSection";
 import PaymentSection from "@/components/PaymentSection";
 import Footer from "@/components/Footer";
 
-type Token = Tables<"tokens">;
+interface Token {
+  id: string;
+  token_code: string;
+  meal_type: string;
+  is_used: boolean;
+  created_at: string;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -40,7 +45,7 @@ const Dashboard = () => {
   const fetchLatestToken = async (userId: string) => {
     const today = new Date().toISOString().split('T')[0];
     const { data } = await supabase
-      .from("tokens")
+      .from("tokens" as any)
       .select("id, token_code, meal_type, is_used, created_at")
       .eq("user_id", userId)
       .eq("meal_date", today)
@@ -48,7 +53,7 @@ const Dashboard = () => {
       .limit(1)
       .maybeSingle();
     
-    if (data) setCurrentToken(data);
+    if (data) setCurrentToken(data as unknown as Token);
   };
 
   const handleGenerateToken = async (mealType: string) => {
@@ -62,7 +67,7 @@ const Dashboard = () => {
       const today = new Date().toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from("tokens")
+        .from("tokens" as any)
         .insert({
           user_id: user.id,
           meal_type: mealType,
@@ -70,13 +75,13 @@ const Dashboard = () => {
           token_code: tokenCode,
           qr_code_data: tokenCode,
           is_used: false,
-        } as any)
+        })
         .select("id, token_code, meal_type, is_used, created_at")
         .single();
 
       if (error) throw error;
 
-      setCurrentToken(data);
+      setCurrentToken(data as unknown as Token);
       toast({
         title: "Token Generated!",
         description: `Your token for ${mealType} is ready.`,

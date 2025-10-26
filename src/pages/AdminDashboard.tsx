@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, Utensils, Ticket, Calendar } from "lucide-react";
 import Footer from "@/components/Footer";
 
-type Token = Tables<"tokens">;
+interface Token {
+  id: string;
+  is_used: boolean;
+}
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -57,16 +59,16 @@ const AdminDashboard = () => {
     const today = new Date().toISOString().split('T')[0];
     
     const { data: allTokens } = await supabase
-      .from("tokens")
+      .from("tokens" as any)
       .select("id, is_used")
-      .eq("meal_date", today)
-      .returns<Pick<Token, 'id' | 'is_used'>[]>();
+      .eq("meal_date", today);
 
     if (allTokens) {
+      const tokens = allTokens as unknown as Token[];
       setTokenStats({
-        total: allTokens.length,
-        used: allTokens.filter(t => t.is_used).length,
-        unused: allTokens.filter(t => !t.is_used).length,
+        total: tokens.length,
+        used: tokens.filter((t) => t.is_used).length,
+        unused: tokens.filter((t) => !t.is_used).length,
       });
     }
   };
