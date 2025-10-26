@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { User, Shield } from "lucide-react";
 
@@ -16,13 +17,14 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<"student" | "admin">("student");
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -33,10 +35,25 @@ const Auth = () => {
 
       if (error) throw error;
 
+      // Update user role if admin was selected
+      if (data.user && role === "admin") {
+        await supabase
+          .from("user_roles")
+          .update({ role: "admin" })
+          .eq("user_id", data.user.id);
+      }
+
       toast({
         title: "Account created!",
-        description: "Please check your email to verify your account.",
+        description: `Your ${role} account has been created successfully.`,
       });
+
+      // Navigate to appropriate dashboard
+      if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -173,6 +190,31 @@ const Auth = () => {
                     required
                   />
                 </div>
+                <div className="space-y-3">
+                  <Label>Sign up as</Label>
+                  <RadioGroup value={role} onValueChange={(value) => setRole(value as "student" | "admin")}>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent/5 transition-colors">
+                      <RadioGroupItem value="student" id="student" />
+                      <Label htmlFor="student" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <User className="h-4 w-4 text-primary" />
+                        <div>
+                          <div className="font-medium">User / Student</div>
+                          <div className="text-xs text-muted-foreground">Access meals and generate tokens</div>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent/5 transition-colors">
+                      <RadioGroupItem value="admin" id="admin" />
+                      <Label htmlFor="admin" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <Shield className="h-4 w-4 text-secondary" />
+                        <div>
+                          <div className="font-medium">Admin / Mess Manager</div>
+                          <div className="text-xs text-muted-foreground">Manage menus and view analytics</div>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating account..." : "Sign Up"}
                 </Button>
@@ -180,10 +222,6 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>By default, accounts are created as Student accounts.</p>
-            <p>Contact admin to upgrade to Admin role.</p>
-          </div>
         </CardContent>
       </Card>
     </div>

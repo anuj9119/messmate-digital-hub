@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Utensils, Ticket, Calendar } from "lucide-react";
+import { LogOut, Utensils, Ticket, Calendar, BarChart3 } from "lucide-react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Footer from "@/components/Footer";
 
 interface Token {
@@ -15,11 +16,17 @@ interface Token {
   is_used: boolean;
 }
 
+interface MealTypeData {
+  meal_type: string;
+  count: number;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [tokenStats, setTokenStats] = useState({ total: 0, used: 0, unused: 0 });
+  const [mealTypeData, setMealTypeData] = useState<MealTypeData[]>([]);
   const [menuData, setMenuData] = useState({
     breakfast: "",
     lunch: "",
@@ -31,6 +38,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     checkAdmin();
     fetchTokenStats();
+    fetchMealTypeData();
     fetchTodayMenu();
   }, []);
 
@@ -70,6 +78,31 @@ const AdminDashboard = () => {
         used: tokens.filter((t) => t.is_used).length,
         unused: tokens.filter((t) => !t.is_used).length,
       });
+    }
+  };
+
+  const fetchMealTypeData = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { data: tokens } = await supabase
+      .from("tokens" as any)
+      .select("meal_type")
+      .eq("meal_date", today);
+
+    if (tokens) {
+      // Group by meal_type and count
+      const mealCounts: { [key: string]: number } = {};
+      tokens.forEach((token: any) => {
+        const mealType = token.meal_type;
+        mealCounts[mealType] = (mealCounts[mealType] || 0) + 1;
+      });
+
+      const chartData = Object.entries(mealCounts).map(([meal_type, count]) => ({
+        meal_type: meal_type.charAt(0).toUpperCase() + meal_type.slice(1),
+        count: count as number,
+      }));
+
+      setMealTypeData(chartData);
     }
   };
 
@@ -155,6 +188,67 @@ const AdminDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Analytics Section */}
+        <Card className="mb-8 shadow-xl">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <BarChart3 className="h-6 w-6 text-primary" />
+              <div>
+                <CardTitle className="text-2xl">Token Analytics</CardTitle>
+                <CardDescription>Today's token generation by meal type</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Bar Chart */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-center">Tokens by Meal Type</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={mealTypeData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="meal_type" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" name="Tokens Generated" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Pie Chart */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-center">Distribution</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={mealTypeData}
+                      dataKey="count"
+                      nameKey="meal_type"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={(entry) => `${entry.meal_type}: ${entry.count}`}
+                    >
+                      {mealTypeData.map((entry, index) => {
+                        const colors = [
+                          "hsl(var(--primary))",
+                          "hsl(var(--secondary))",
+                          "hsl(var(--accent))",
+                          "hsl(25 95% 65%)"
+                        ];
+                        return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                      })}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Token Statistics */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
