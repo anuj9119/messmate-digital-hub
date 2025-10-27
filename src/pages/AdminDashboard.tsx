@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Utensils, Ticket, Calendar, BarChart3 } from "lucide-react";
+import { LogOut, Utensils, Ticket, Calendar, BarChart3, RefreshCw } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Footer from "@/components/Footer";
 
@@ -34,6 +34,7 @@ const AdminDashboard = () => {
     dinner: "",
   });
   const [updating, setUpdating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -162,6 +163,16 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchTokenStats(), fetchMealTypeData()]);
+    setRefreshing(false);
+    toast({
+      title: "Refreshed!",
+      description: "Token statistics have been updated.",
+    });
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -191,12 +202,23 @@ const AdminDashboard = () => {
         {/* Analytics Section */}
         <Card className="mb-8 shadow-xl">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle className="text-2xl">Token Analytics</CardTitle>
-                <CardDescription>Today's token generation by meal type</CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BarChart3 className="h-6 w-6 text-primary" />
+                <div>
+                  <CardTitle className="text-2xl">Token Analytics</CardTitle>
+                  <CardDescription>Today's token generation by meal type</CardDescription>
+                </div>
               </div>
+              <Button 
+                onClick={handleRefresh} 
+                disabled={refreshing}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
