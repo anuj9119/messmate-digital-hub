@@ -36,11 +36,18 @@ const Auth = () => {
       if (error) throw error;
 
       // Update user role if admin was selected
+      // Set admin role if selected
       if (data.user && role === "admin") {
+        // First, delete the default student role created by trigger
         await supabase
           .from("user_roles")
-          .update({ role: "admin" })
+          .delete()
           .eq("user_id", data.user.id);
+        
+        // Then insert the admin role
+        await supabase
+          .from("user_roles")
+          .insert({ user_id: data.user.id, role: "admin" });
       }
 
       toast({
