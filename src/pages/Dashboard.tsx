@@ -197,6 +197,7 @@ const Dashboard = () => {
       </section>
 
       <MenuSection />
+      <PaymentSection />
       <Footer />
     </div>
   );

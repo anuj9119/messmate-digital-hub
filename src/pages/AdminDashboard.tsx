@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Utensils, Ticket, Calendar, BarChart3, RefreshCw } from "lucide-react";
+import { LogOut, Utensils, Ticket, Calendar, BarChart3, RefreshCw, CheckCircle } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Footer from "@/components/Footer";
 
@@ -35,6 +35,8 @@ const AdminDashboard = () => {
   });
   const [updating, setUpdating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [tokenCode, setTokenCode] = useState("");
+  const [validatingToken, setValidatingToken] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -173,6 +175,83 @@ const AdminDashboard = () => {
     });
   };
 
+  const handleValidateToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tokenCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a token code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setValidatingToken(true);
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if token exists and is valid
+      const { data: tokenData, error: fetchError } = await supabase
+        .from("tokens" as any)
+        .select("*")
+        .eq("token_code", tokenCode)
+        .eq("meal_date", today)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (!tokenData) {
+        toast({
+          title: "Invalid Token",
+          description: "Token not found or expired",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const token = tokenData as any;
+
+      if (token.is_used) {
+        toast({
+          title: "Already Used",
+          description: "This token has already been redeemed",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mark token as used
+      const { error: updateError } = await supabase
+        .from("tokens" as any)
+        .update({ 
+          is_used: true,
+          used_at: new Date().toISOString()
+        })
+        .eq("token_code", tokenCode);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Token Validated!",
+        description: `Token for ${token.meal_type} has been marked as used.`,
+      });
+
+      setTokenCode("");
+      // Refresh stats
+      await Promise.all([fetchTokenStats(), fetchMealTypeData()]);
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setValidatingToken(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -268,6 +347,32 @@ const AdminDashboard = () => {
                 </ResponsiveContainer>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Token Validation Section */}
+        <Card className="mb-8 shadow-xl">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-6 w-6 text-primary" />
+              <div>
+                <CardTitle className="text-2xl">Validate Token</CardTitle>
+                <CardDescription>Enter token code to mark meal as served</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleValidateToken} className="flex gap-4">
+              <Input
+                placeholder="Enter token code (e.g., TKN-123456)"
+                value={tokenCode}
+                onChange={(e) => setTokenCode(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={validatingToken}>
+                {validatingToken ? "Validating..." : "Validate"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
