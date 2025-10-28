@@ -35,6 +35,8 @@ const AdminDashboard = () => {
   });
   const [updating, setUpdating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [tokenCode, setTokenCode] = useState("");
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     checkAdmin();
@@ -173,6 +175,81 @@ const AdminDashboard = () => {
     });
   };
 
+  const handleValidateToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tokenCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a token code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setValidating(true);
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Fetch the token
+      const { data: tokenData, error: fetchError } = await supabase
+        .from("tokens" as any)
+        .select("*")
+        .eq("token_code", tokenCode.trim())
+        .eq("meal_date", today)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (!tokenData) {
+        toast({
+          title: "Invalid Token",
+          description: "Token not found or expired",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const token = tokenData as any;
+
+      if (token.is_used) {
+        toast({
+          title: "Token Already Used",
+          description: "This token has already been redeemed",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mark token as used
+      const { error: updateError } = await supabase
+        .from("tokens" as any)
+        .update({
+          is_used: true,
+          used_at: new Date().toISOString(),
+        })
+        .eq("id", token.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Token Validated!",
+        description: `${token.meal_type} meal marked as served`,
+      });
+
+      setTokenCode("");
+      await handleRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setValidating(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -306,6 +383,34 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Token Validation Section */}
+        <Card className="mb-8 shadow-xl border-2 border-primary/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Ticket className="h-6 w-6 text-primary" />
+              <div>
+                <CardTitle className="text-2xl">Validate Token</CardTitle>
+                <CardDescription>Enter token code to mark meal as served</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleValidateToken} className="flex gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Enter token code (e.g., TKN-123456)"
+                  value={tokenCode}
+                  onChange={(e) => setTokenCode(e.target.value)}
+                  className="text-lg"
+                />
+              </div>
+              <Button type="submit" size="lg" disabled={validating}>
+                {validating ? "Validating..." : "Validate Token"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Menu Update Form */}
         <Card className="shadow-xl">
