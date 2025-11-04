@@ -25,6 +25,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [college, setCollege] = useState<string>("");
   const [tokenStats, setTokenStats] = useState({ total: 0, used: 0, unused: 0 });
   const [mealTypeData, setMealTypeData] = useState<MealTypeData[]>([]);
   const [menuData, setMenuData] = useState({
@@ -63,12 +64,21 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Get admin's college
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("college")
+      .eq("id", user.id)
+      .single();
+
+    setCollege(profileData?.college || "");
     setLoading(false);
   };
 
   const fetchTokenStats = async () => {
     const today = new Date().toISOString().split('T')[0];
     
+    // Tokens are automatically filtered by college through RLS
     const { data: allTokens } = await supabase
       .from("tokens" as any)
       .select("id, is_used")
@@ -87,6 +97,7 @@ const AdminDashboard = () => {
   const fetchMealTypeData = async () => {
     const today = new Date().toISOString().split('T')[0];
     
+    // Tokens are automatically filtered by college through RLS
     const { data: tokens } = await supabase
       .from("tokens" as any)
       .select("meal_type")
@@ -111,6 +122,7 @@ const AdminDashboard = () => {
 
   const fetchTodayMenu = async () => {
     const today = new Date().toISOString().split('T')[0];
+    // Menus are automatically filtered by college through RLS
     const { data } = await supabase
       .from("daily_menus")
       .select("*")
@@ -144,8 +156,9 @@ const AdminDashboard = () => {
           snacks: menuData.snacks,
           dinner: menuData.dinner,
           created_by: user?.id,
+          college: college,
         }, {
-          onConflict: 'menu_date'
+          onConflict: 'menu_date,college'
         });
 
       if (error) throw error;

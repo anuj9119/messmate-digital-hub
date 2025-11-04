@@ -17,6 +17,7 @@ export type Database = {
       daily_menus: {
         Row: {
           breakfast: string | null
+          college: string
           created_at: string | null
           created_by: string | null
           dinner: string | null
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           breakfast?: string | null
+          college?: string
           created_at?: string | null
           created_by?: string | null
           dinner?: string | null
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           breakfast?: string | null
+          college?: string
           created_at?: string | null
           created_by?: string | null
           dinner?: string | null
@@ -52,16 +55,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          college: string
           created_at: string | null
           full_name: string | null
           id: string
         }
         Insert: {
+          college?: string
           created_at?: string | null
           full_name?: string | null
           id: string
         }
         Update: {
+          college?: string
           created_at?: string | null
           full_name?: string | null
           id?: string
@@ -70,6 +76,7 @@ export type Database = {
       }
       tokens: {
         Row: {
+          college: string | null
           created_at: string | null
           id: string
           is_used: boolean | null
@@ -81,6 +88,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          college?: string | null
           created_at?: string | null
           id?: string
           is_used?: boolean | null
@@ -92,6 +100,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          college?: string | null
           created_at?: string | null
           id?: string
           is_used?: boolean | null

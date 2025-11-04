@@ -22,6 +22,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [college, setCollege] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [generatingToken, setGeneratingToken] = useState(false);
   const [currentToken, setCurrentToken] = useState<Token | null>(null);
@@ -50,7 +51,15 @@ const Dashboard = () => {
       return;
     }
 
+    // Get user's college
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("college")
+      .eq("id", user.id)
+      .single();
+
     setUser(user);
+    setCollege(profileData?.college || "");
     fetchLatestToken(user.id);
     setLoading(false);
   };
@@ -94,6 +103,7 @@ const Dashboard = () => {
           token_code: tokenCode,
           qr_code_data: tokenCode,
           is_used: false,
+          college: college,
         })
         .select("id, token_code, meal_type, is_used, created_at")
         .single();
