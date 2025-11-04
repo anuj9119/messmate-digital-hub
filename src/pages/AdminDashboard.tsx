@@ -59,7 +59,7 @@ const AdminDashboard = () => {
       .single();
 
     if (roleData?.role !== "admin") {
-      navigate("/dashboard");
+      navigate("/auth");
       return;
     }
 
