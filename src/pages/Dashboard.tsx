@@ -37,6 +37,19 @@ const Dashboard = () => {
       navigate("/auth");
       return;
     }
+
+    // Check if user is a student
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    if (roleData?.role === "admin") {
+      navigate("/admin");
+      return;
+    }
+
     setUser(user);
     fetchLatestToken(user.id);
     setLoading(false);
@@ -56,11 +69,17 @@ const Dashboard = () => {
     if (data) setCurrentToken(data as unknown as Token);
   };
 
-  const handleGenerateToken = async (mealType: string) => {
-    if (!user) return;
+  const handleGenerateToken = async () => {
+    if (!user || !selectedMeal) {
+      toast({
+        title: "Error",
+        description: "Please select a meal first",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setGeneratingToken(true);
-    setSelectedMeal(mealType);
 
     try {
       const tokenCode = `TKN-${Date.now().toString().slice(-6)}`;
@@ -70,7 +89,7 @@ const Dashboard = () => {
         .from("tokens" as any)
         .insert({
           user_id: user.id,
-          meal_type: mealType,
+          meal_type: selectedMeal,
           meal_date: today,
           token_code: tokenCode,
           qr_code_data: tokenCode,
@@ -84,7 +103,7 @@ const Dashboard = () => {
       setCurrentToken(data as unknown as Token);
       toast({
         title: "Token Generated!",
-        description: `Your token for ${mealType} is ready.`,
+        description: `Your token for ${selectedMeal} is ready.`,
       });
     } catch (error: any) {
       toast({
@@ -138,24 +157,35 @@ const Dashboard = () => {
                   <CardTitle>Select Meal</CardTitle>
                   <CardDescription>Choose your meal and generate token</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {[
-                    { name: "Breakfast", price: "₹40" },
-                    { name: "Lunch", price: "₹60" },
-                    { name: "Snacks", price: "₹30" },
-                    { name: "Dinner", price: "₹60" }
-                  ].map((meal) => (
-                    <Button
-                      key={meal.name}
-                      variant="outline"
-                      className="w-full justify-between h-auto py-4"
-                      onClick={() => handleGenerateToken(meal.name)}
-                      disabled={generatingToken}
-                    >
-                      <span className="font-medium">{meal.name}</span>
-                      <span className="font-bold text-primary">{meal.price}</span>
-                    </Button>
-                  ))}
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {[
+                      { name: "Breakfast", price: "₹40" },
+                      { name: "Lunch", price: "₹60" },
+                      { name: "Snacks", price: "₹30" },
+                      { name: "Dinner", price: "₹60" }
+                    ].map((meal) => (
+                      <Button
+                        key={meal.name}
+                        variant={selectedMeal === meal.name ? "default" : "outline"}
+                        className="w-full justify-between h-auto py-4"
+                        onClick={() => setSelectedMeal(meal.name)}
+                        disabled={generatingToken}
+                      >
+                        <span className="font-medium">{meal.name}</span>
+                        <span className="font-bold">{meal.price}</span>
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleGenerateToken}
+                    disabled={!selectedMeal || generatingToken}
+                  >
+                    {generatingToken ? "Generating..." : "Generate Token"}
+                  </Button>
                 </CardContent>
               </Card>
 
