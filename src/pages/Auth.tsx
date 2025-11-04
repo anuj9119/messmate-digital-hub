@@ -28,27 +28,15 @@ const Auth = () => {
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: { 
+            full_name: fullName,
+            role: role 
+          },
           emailRedirectTo: `${window.location.origin}/`
         }
       });
 
       if (error) throw error;
-
-      // Update user role if admin was selected
-      // Set admin role if selected
-      if (data.user && role === "admin") {
-        // First, delete the default student role created by trigger
-        await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", data.user.id);
-        
-        // Then insert the admin role
-        await supabase
-          .from("user_roles")
-          .insert({ user_id: data.user.id, role: "admin" });
-      }
 
       toast({
         title: "Account created!",
