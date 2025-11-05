@@ -82,7 +82,7 @@ const Dashboard = () => {
   };
 
   const handleGenerateToken = async () => {
-    if (!user || !selectedMeal) {
+    if (!user || !selectedMeal || !college) {
       toast({
         title: "Error",
         description: "Please select a meal first",
@@ -98,7 +98,7 @@ const Dashboard = () => {
       const today = new Date().toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from("tokens" as any)
+        .from("tokens")
         .insert({
           user_id: user.id,
           meal_type: selectedMeal,
