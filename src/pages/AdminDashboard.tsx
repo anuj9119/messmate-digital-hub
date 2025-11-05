@@ -83,16 +83,15 @@ const AdminDashboard = () => {
     
     // Tokens are automatically filtered by college through RLS
     const { data: allTokens } = await supabase
-      .from("tokens" as any)
+      .from("tokens")
       .select("id, is_used")
       .eq("meal_date", today);
 
     if (allTokens) {
-      const tokens = allTokens as unknown as Token[];
       setTokenStats({
-        total: tokens.length,
-        used: tokens.filter((t) => t.is_used).length,
-        unused: tokens.filter((t) => !t.is_used).length,
+        total: allTokens.length,
+        used: allTokens.filter((t) => t.is_used).length,
+        unused: allTokens.filter((t) => !t.is_used).length,
       });
     }
   };
@@ -102,14 +101,14 @@ const AdminDashboard = () => {
     
     // Tokens are automatically filtered by college through RLS
     const { data: tokens } = await supabase
-      .from("tokens" as any)
+      .from("tokens")
       .select("meal_type")
       .eq("meal_date", today);
 
     if (tokens) {
       // Group by meal_type and count
       const mealCounts: { [key: string]: number } = {};
-      tokens.forEach((token: any) => {
+      tokens.forEach((token) => {
         const mealType = token.meal_type;
         mealCounts[mealType] = (mealCounts[mealType] || 0) + 1;
       });
@@ -144,10 +143,24 @@ const AdminDashboard = () => {
 
   const handleUpdateMenu = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!college) {
+      toast({
+        title: "Error",
+        description: "College information not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUpdating(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       const today = new Date().toISOString().split('T')[0];
 
       const { error } = await supabase
@@ -158,7 +171,7 @@ const AdminDashboard = () => {
           lunch: menuData.lunch,
           snacks: menuData.snacks,
           dinner: menuData.dinner,
-          created_by: user?.id,
+          created_by: user.id,
           college: college,
         }, {
           onConflict: 'menu_date,college'
@@ -209,7 +222,7 @@ const AdminDashboard = () => {
       
       // Fetch the token
       const { data: tokenData, error: fetchError } = await supabase
-        .from("tokens" as any)
+        .from("tokens")
         .select("*")
         .eq("token_code", tokenCode.trim())
         .eq("meal_date", today)
@@ -226,9 +239,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const token = tokenData as any;
-
-      if (token.is_used) {
+      if (tokenData.is_used) {
         toast({
           title: "Token Already Used",
           description: "This token has already been redeemed",
@@ -239,22 +250,32 @@ const AdminDashboard = () => {
 
       // Mark token as used
       const { error: updateError } = await supabase
-        .from("tokens" as any)
+        .from("tokens")
         .update({
           is_used: true,
           used_at: new Date().toISOString(),
         })
-        .eq("id", token.id);
+        .eq("id", tokenData.id);
 
       if (updateError) throw updateError;
 
+      // Immediately update the stats in state
+      setTokenStats(prev => ({
+        ...prev,
+        used: prev.used + 1,
+        unused: prev.unused - 1
+      }));
+
       toast({
         title: "Token Validated!",
-        description: `${token.meal_type} meal marked as served`,
+        description: `${tokenData.meal_type} meal marked as served`,
       });
 
       setTokenCode("");
-      await handleRefresh();
+      
+      // Refresh data from database to ensure accuracy
+      await fetchTokenStats();
+      await fetchMealTypeData();
     } catch (error: any) {
       toast({
         title: "Error",
