@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, QrCode, Clock, Utensils } from "lucide-react";
 import MenuSection from "@/components/MenuSection";
@@ -22,6 +23,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [userName, setUserName] = useState<string>("");
   const [college, setCollege] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [generatingToken, setGeneratingToken] = useState(false);
@@ -51,14 +53,15 @@ const Dashboard = () => {
       return;
     }
 
-    // Get user's college
+    // Get user's college and name
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("college")
+      .select("college, full_name")
       .eq("id", user.id)
       .single();
 
     setUser(user);
+    setUserName(profileData?.full_name || "User");
     setCollege(profileData?.college || "");
     fetchLatestToken(user.id);
     setLoading(false);
@@ -144,10 +147,20 @@ const Dashboard = () => {
             <Utensils className="h-8 w-8" />
             <h1 className="text-2xl font-bold">MessMate - Student Dashboard</h1>
           </div>
-          <Button variant="secondary" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Avatar>
+                <AvatarFallback className="bg-white text-primary font-semibold">
+                  {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium hidden sm:block">{userName}</span>
+            </div>
+            <Button variant="secondary" onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 

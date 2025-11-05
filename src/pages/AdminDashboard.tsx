@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Utensils, Ticket, Calendar, BarChart3, RefreshCw } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -25,6 +26,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState<string>("");
   const [college, setCollege] = useState<string>("");
   const [tokenStats, setTokenStats] = useState({ total: 0, used: 0, unused: 0 });
   const [mealTypeData, setMealTypeData] = useState<MealTypeData[]>([]);
@@ -64,13 +66,14 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Get admin's college
+    // Get admin's college and name
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("college")
+      .select("college, full_name")
       .eq("id", user.id)
       .single();
 
+    setUserName(profileData?.full_name || "Admin");
     setCollege(profileData?.college || "");
     setLoading(false);
   };
@@ -281,10 +284,20 @@ const AdminDashboard = () => {
             <Utensils className="h-8 w-8" />
             <h1 className="text-2xl font-bold">MessMate - Admin Dashboard</h1>
           </div>
-          <Button variant="secondary" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Avatar>
+                <AvatarFallback className="bg-white text-purple-600 font-semibold">
+                  {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium hidden sm:block">{userName}</span>
+            </div>
+            <Button variant="secondary" onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
