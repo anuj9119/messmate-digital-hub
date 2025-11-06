@@ -53,8 +53,8 @@ const Hero = () => {
             />
             <FeatureCard 
               icon={<CreditCard className="h-8 w-8" />}
-              title="Quick Payments"
-              description="Pay securely online and skip the queue at the mess"
+              title="Generate Token"
+              description="Generate your meal token instantly and collect food hassle-free"
             />
             <FeatureCard 
               icon={<Ticket className="h-8 w-8" />}

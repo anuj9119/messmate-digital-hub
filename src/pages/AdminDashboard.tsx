@@ -147,7 +147,7 @@ const AdminDashboard = () => {
     if (!college) {
       toast({
         title: "Error",
-        description: "College information not found",
+        description: "College information not found. Please refresh the page.",
         variant: "destructive",
       });
       return;
@@ -162,31 +162,64 @@ const AdminDashboard = () => {
       }
 
       const today = new Date().toISOString().split('T')[0];
-
-      const { error } = await supabase
+      
+      // Check if menu already exists
+      const { data: existingMenu } = await supabase
         .from("daily_menus")
-        .upsert({
-          menu_date: today,
-          breakfast: menuData.breakfast,
-          lunch: menuData.lunch,
-          snacks: menuData.snacks,
-          dinner: menuData.dinner,
-          created_by: user.id,
-          college: college,
-        }, {
-          onConflict: 'menu_date,college'
-        });
+        .select("id")
+        .eq("menu_date", today)
+        .eq("college", college)
+        .maybeSingle();
 
-      if (error) throw error;
+      let error;
+      
+      if (existingMenu) {
+        // Update existing menu
+        const { error: updateError } = await supabase
+          .from("daily_menus")
+          .update({
+            breakfast: menuData.breakfast || null,
+            lunch: menuData.lunch || null,
+            snacks: menuData.snacks || null,
+            dinner: menuData.dinner || null,
+            created_by: user.id,
+          })
+          .eq("id", existingMenu.id);
+        
+        error = updateError;
+      } else {
+        // Insert new menu
+        const { error: insertError } = await supabase
+          .from("daily_menus")
+          .insert({
+            menu_date: today,
+            breakfast: menuData.breakfast || null,
+            lunch: menuData.lunch || null,
+            snacks: menuData.snacks || null,
+            dinner: menuData.dinner || null,
+            created_by: user.id,
+            college: college,
+          });
+        
+        error = insertError;
+      }
+
+      if (error) {
+        console.error("Menu update error:", error);
+        throw error;
+      }
+
+      await fetchTodayMenu();
 
       toast({
         title: "Menu Updated!",
         description: "Today's menu has been updated successfully.",
       });
     } catch (error: any) {
+      console.error("Failed to update menu:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to update menu. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -206,7 +239,9 @@ const AdminDashboard = () => {
 
   const handleValidateToken = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tokenCode.trim()) {
+    
+    const trimmedCode = tokenCode.trim();
+    if (!trimmedCode) {
       toast({
         title: "Error",
         description: "Please enter a token code",
@@ -224,11 +259,14 @@ const AdminDashboard = () => {
       const { data: tokenData, error: fetchError } = await supabase
         .from("tokens")
         .select("*")
-        .eq("token_code", tokenCode.trim())
+        .eq("token_code", trimmedCode)
         .eq("meal_date", today)
         .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error("Token fetch error:", fetchError);
+        throw fetchError;
+      }
 
       if (!tokenData) {
         toast({
@@ -236,6 +274,7 @@ const AdminDashboard = () => {
           description: "Token not found or expired",
           variant: "destructive",
         });
+        setValidating(false);
         return;
       }
 
@@ -245,6 +284,7 @@ const AdminDashboard = () => {
           description: "This token has already been redeemed",
           variant: "destructive",
         });
+        setValidating(false);
         return;
       }
 
@@ -257,29 +297,37 @@ const AdminDashboard = () => {
         })
         .eq("id", tokenData.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Token update error:", updateError);
+        throw updateError;
+      }
 
-      // Immediately update the stats in state
+      // Clear the input first
+      setTokenCode("");
+
+      // Update stats immediately in UI
       setTokenStats(prev => ({
-        ...prev,
+        total: prev.total,
         used: prev.used + 1,
         unused: prev.unused - 1
       }));
 
       toast({
         title: "Token Validated!",
-        description: `${tokenData.meal_type} meal marked as served`,
+        description: `${tokenData.meal_type} meal marked as served. Used: ${tokenStats.used + 1}`,
       });
-
-      setTokenCode("");
       
-      // Refresh data from database to ensure accuracy
-      await fetchTokenStats();
-      await fetchMealTypeData();
+      // Refresh data from database in background to ensure accuracy
+      setTimeout(async () => {
+        await fetchTokenStats();
+        await fetchMealTypeData();
+      }, 100);
+      
     } catch (error: any) {
+      console.error("Token validation failed:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to validate token. Please try again.",
         variant: "destructive",
       });
     } finally {
