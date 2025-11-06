@@ -24,7 +24,6 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [userName, setUserName] = useState<string>("");
-  const [college, setCollege] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [generatingToken, setGeneratingToken] = useState(false);
   const [currentToken, setCurrentToken] = useState<Token | null>(null);
@@ -53,16 +52,15 @@ const Dashboard = () => {
       return;
     }
 
-    // Get user's college and name
+    // Get user's name
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("college, full_name")
+      .select("full_name")
       .eq("id", user.id)
       .single();
 
     setUser(user);
     setUserName(profileData?.full_name || "User");
-    setCollege(profileData?.college || "");
     fetchLatestToken(user.id);
     setLoading(false);
   };
@@ -95,15 +93,6 @@ const Dashboard = () => {
       toast({
         title: "Error",
         description: "User not authenticated",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!college) {
-      toast({
-        title: "Error",
-        description: "College information not found. Please contact support.",
         variant: "destructive",
       });
       return;
@@ -143,7 +132,6 @@ const Dashboard = () => {
           token_code: tokenCode,
           qr_code_data: tokenCode,
           is_used: false,
-          college: college,
         })
         .select("id, token_code, meal_type, is_used, created_at")
         .single();

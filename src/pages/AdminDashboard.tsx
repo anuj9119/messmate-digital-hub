@@ -27,7 +27,6 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string>("");
-  const [college, setCollege] = useState<string>("");
   const [tokenStats, setTokenStats] = useState({ total: 0, used: 0, unused: 0 });
   const [mealTypeData, setMealTypeData] = useState<MealTypeData[]>([]);
   const [menuData, setMenuData] = useState({
@@ -66,15 +65,14 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Get admin's college and name
+    // Get admin's name
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("college, full_name")
+      .select("full_name")
       .eq("id", user.id)
       .single();
 
     setUserName(profileData?.full_name || "Admin");
-    setCollege(profileData?.college || "");
     setLoading(false);
   };
 
@@ -143,15 +141,6 @@ const AdminDashboard = () => {
 
   const handleUpdateMenu = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!college) {
-      toast({
-        title: "Error",
-        description: "College information not found. Please refresh the page.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setUpdating(true);
 
@@ -168,7 +157,6 @@ const AdminDashboard = () => {
         .from("daily_menus")
         .select("id")
         .eq("menu_date", today)
-        .eq("college", college)
         .maybeSingle();
 
       let error;
@@ -198,7 +186,6 @@ const AdminDashboard = () => {
             snacks: menuData.snacks || null,
             dinner: menuData.dinner || null,
             created_by: user.id,
-            college: college,
           });
         
         error = insertError;

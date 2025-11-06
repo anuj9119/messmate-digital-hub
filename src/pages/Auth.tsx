@@ -17,7 +17,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [college, setCollege] = useState("");
   const [role, setRole] = useState<"student" | "admin">("student");
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -31,8 +30,7 @@ const Auth = () => {
         options: {
           data: { 
             full_name: fullName,
-            role: role,
-            college: college
+            role: role
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -125,17 +123,6 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-college">College/School Name</Label>
-                  <Input
-                    id="login-college"
-                    type="text"
-                    placeholder="Enter your college/school name"
-                    value={college}
-                    onChange={(e) => setCollege(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <Input
                     id="login-email"
@@ -165,17 +152,6 @@ const Auth = () => {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-college">College/School Name</Label>
-                  <Input
-                    id="signup-college"
-                    type="text"
-                    placeholder="Enter your college/school name"
-                    value={college}
-                    onChange={(e) => setCollege(e.target.value)}
-                    required
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
