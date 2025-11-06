@@ -82,10 +82,28 @@ const Dashboard = () => {
   };
 
   const handleGenerateToken = async () => {
-    if (!user || !selectedMeal || !college) {
+    if (!selectedMeal) {
       toast({
         title: "Error",
         description: "Please select a meal first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!college) {
+      toast({
+        title: "Error",
+        description: "College information not found. Please contact support.",
         variant: "destructive",
       });
       return;
@@ -96,6 +114,25 @@ const Dashboard = () => {
     try {
       const tokenCode = `TKN-${Date.now().toString().slice(-6)}`;
       const today = new Date().toISOString().split('T')[0];
+
+      // Check if token already exists for this meal today
+      const { data: existingToken } = await supabase
+        .from("tokens")
+        .select("id, token_code")
+        .eq("user_id", user.id)
+        .eq("meal_type", selectedMeal)
+        .eq("meal_date", today)
+        .maybeSingle();
+
+      if (existingToken) {
+        toast({
+          title: "Token Already Exists",
+          description: `You already have a token for ${selectedMeal} today: ${existingToken.token_code}`,
+          variant: "destructive",
+        });
+        setGeneratingToken(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("tokens")
@@ -111,17 +148,21 @@ const Dashboard = () => {
         .select("id, token_code, meal_type, is_used, created_at")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Token generation error:", error);
+        throw error;
+      }
 
       setCurrentToken(data as unknown as Token);
       toast({
         title: "Token Generated!",
-        description: `Your token for ${selectedMeal} is ready.`,
+        description: `Your token for ${selectedMeal} is ready: ${data.token_code}`,
       });
     } catch (error: any) {
+      console.error("Token generation failed:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to generate token. Please try again.",
         variant: "destructive",
       });
     } finally {

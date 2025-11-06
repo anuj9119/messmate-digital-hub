@@ -2,8 +2,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Smartphone, QrCode, Zap, ShieldCheck, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const PaymentSection = () => {
+  const navigate = useNavigate();
+
+  const handleGenerateToken = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/auth");
+    } else {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (roleData?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  };
+
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -36,9 +59,9 @@ const PaymentSection = () => {
                 <MealOption name="Snacks" price="₹30" />
                 <MealOption name="Dinner" price="₹60" />
               </div>
-              <Button className="w-full" size="lg">
+              <Button className="w-full" size="lg" onClick={handleGenerateToken}>
                 <Smartphone className="mr-2 h-5 w-5" />
-                Proceed to Payment
+                Generate Token
               </Button>
               <div className="flex items-center justify-center gap-4 pt-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
