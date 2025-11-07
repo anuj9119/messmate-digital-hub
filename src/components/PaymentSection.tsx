@@ -49,8 +49,8 @@ const PaymentSection = () => {
               <div className="mx-auto bg-gradient-to-br from-accent to-accent/70 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <CreditCard className="h-8 w-8 text-white" />
               </div>
-              <CardTitle className="text-2xl">Pay for Your Meal</CardTitle>
-              <CardDescription>Select meal type and pay securely</CardDescription>
+              <CardTitle className="text-2xl">Generate Token for Your Meal</CardTitle>
+              <CardDescription>Select meal type and generate token</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
