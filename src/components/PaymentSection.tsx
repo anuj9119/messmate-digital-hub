@@ -35,10 +35,10 @@ const PaymentSection = () => {
             For Day Scholars
           </Badge>
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            Quick & Secure Payments
+            Generate Secure Tokens
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Pay online, get your digital token instantly, and skip the queue!
+            Tap generate token, get your digital token instantly, and skip the queue!
           </p>
         </div>
 
