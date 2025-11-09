@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, QrCode, Clock, Utensils } from "lucide-react";
+import { LogOut, QrCode, Clock, Utensils, XCircle } from "lucide-react";
 import MenuSection from "@/components/MenuSection";
 import PaymentSection from "@/components/PaymentSection";
 import Footer from "@/components/Footer";
@@ -28,6 +29,13 @@ const Dashboard = () => {
   const [generatingToken, setGeneratingToken] = useState(false);
   const [currentToken, setCurrentToken] = useState<Token | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<string>("");
+  const [mealPreferences, setMealPreferences] = useState({
+    skip_breakfast: false,
+    skip_lunch: false,
+    skip_snacks: false,
+    skip_dinner: false,
+  });
+  const [updatingPreferences, setUpdatingPreferences] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -62,7 +70,78 @@ const Dashboard = () => {
     setUser(user);
     setUserName(profileData?.full_name || "User");
     fetchLatestToken(user.id);
+    fetchMealPreferences(user.id);
     setLoading(false);
+  };
+
+  const fetchMealPreferences = async (userId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase
+      .from("meal_preferences")
+      .select("skip_breakfast, skip_lunch, skip_snacks, skip_dinner")
+      .eq("user_id", userId)
+      .eq("meal_date", today)
+      .maybeSingle();
+    
+    if (data) {
+      setMealPreferences(data);
+    }
+  };
+
+  const handleUpdateMealPreferences = async (mealType: string, checked: boolean) => {
+    if (!user) return;
+
+    setUpdatingPreferences(true);
+    
+    const today = new Date().toISOString().split('T')[0];
+    const fieldName = `skip_${mealType.toLowerCase()}`;
+    const newPreferences = { ...mealPreferences, [fieldName]: checked };
+    
+    try {
+      // Check if preference exists
+      const { data: existing } = await supabase
+        .from("meal_preferences")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("meal_date", today)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabase
+          .from("meal_preferences")
+          .update(newPreferences)
+          .eq("id", existing.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { error } = await supabase
+          .from("meal_preferences")
+          .insert({
+            user_id: user.id,
+            meal_date: today,
+            ...newPreferences,
+          });
+        
+        if (error) throw error;
+      }
+
+      setMealPreferences(newPreferences);
+      toast({
+        title: "Updated!",
+        description: `${mealType} preference updated successfully.`,
+      });
+    } catch (error: any) {
+      console.error("Failed to update preferences:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update preferences. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingPreferences(false);
+    }
   };
 
   const fetchLatestToken = async (userId: string) => {
@@ -192,6 +271,54 @@ const Dashboard = () => {
           </div>
         </div>
       </header>
+
+      {/* Meal Opt-out Section */}
+      <section className="py-8 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <Card className="border-2 border-orange-200 dark:border-orange-900">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <XCircle className="h-6 w-6 text-orange-600" />
+                  <div>
+                    <CardTitle className="text-xl">Skip Today's Meals</CardTitle>
+                    <CardDescription>
+                      Let us know if you won't be eating today to help reduce food wastage
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { name: "Breakfast", key: "skip_breakfast" },
+                    { name: "Lunch", key: "skip_lunch" },
+                    { name: "Snacks", key: "skip_snacks" },
+                    { name: "Dinner", key: "skip_dinner" }
+                  ].map((meal) => (
+                    <div key={meal.name} className="flex items-center space-x-2 p-3 rounded-lg border border-border bg-background hover:bg-accent/50 transition-colors">
+                      <Checkbox
+                        id={meal.key}
+                        checked={mealPreferences[meal.key as keyof typeof mealPreferences]}
+                        onCheckedChange={(checked) => 
+                          handleUpdateMealPreferences(meal.name, checked as boolean)
+                        }
+                        disabled={updatingPreferences}
+                      />
+                      <label
+                        htmlFor={meal.key}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {meal.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
 
       {/* Token Generation Section */}
       <section className="py-12 bg-gradient-to-br from-primary/10 to-secondary/10">

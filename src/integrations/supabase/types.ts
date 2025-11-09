@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          meal_date: string
+          skip_breakfast: boolean | null
+          skip_dinner: boolean | null
+          skip_lunch: boolean | null
+          skip_snacks: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          meal_date?: string
+          skip_breakfast?: boolean | null
+          skip_dinner?: boolean | null
+          skip_lunch?: boolean | null
+          skip_snacks?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          meal_date?: string
+          skip_breakfast?: boolean | null
+          skip_dinner?: boolean | null
+          skip_lunch?: boolean | null
+          skip_snacks?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

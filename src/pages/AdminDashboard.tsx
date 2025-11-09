@@ -22,6 +22,11 @@ interface MealTypeData {
   count: number;
 }
 
+interface OptOutData {
+  meal_type: string;
+  count: number;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,12 +44,14 @@ const AdminDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [tokenCode, setTokenCode] = useState("");
   const [validating, setValidating] = useState(false);
+  const [optOutData, setOptOutData] = useState<OptOutData[]>([]);
 
   useEffect(() => {
     checkAdmin();
     fetchTokenStats();
     fetchMealTypeData();
     fetchTodayMenu();
+    fetchOptOutData();
   }, []);
 
   const checkAdmin = async () => {
@@ -216,12 +223,39 @@ const AdminDashboard = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchTokenStats(), fetchMealTypeData()]);
+    await Promise.all([fetchTokenStats(), fetchMealTypeData(), fetchOptOutData()]);
     setRefreshing(false);
     toast({
       title: "Refreshed!",
       description: "Token statistics have been updated.",
     });
+  };
+
+  const fetchOptOutData = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { data: preferences } = await supabase
+      .from("meal_preferences")
+      .select("skip_breakfast, skip_lunch, skip_snacks, skip_dinner")
+      .eq("meal_date", today);
+
+    if (preferences) {
+      const optOutCounts = {
+        Breakfast: preferences.filter(p => p.skip_breakfast).length,
+        Lunch: preferences.filter(p => p.skip_lunch).length,
+        Snacks: preferences.filter(p => p.skip_snacks).length,
+        Dinner: preferences.filter(p => p.skip_dinner).length,
+      };
+
+      const chartData = Object.entries(optOutCounts)
+        .filter(([_, count]) => count > 0)
+        .map(([meal_type, count]) => ({
+          meal_type,
+          count: count as number,
+        }));
+
+      setOptOutData(chartData);
+    }
   };
 
   const handleValidateToken = async (e: React.FormEvent) => {
@@ -465,6 +499,63 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Opt-out Analytics Section */}
+        <Card className="mb-8 shadow-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/10 dark:to-red-950/10">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <BarChart3 className="h-6 w-6 text-orange-600" />
+              <div>
+                <CardTitle className="text-2xl">Food Wastage Control</CardTitle>
+                <CardDescription>Students who opted out of today's meals</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {optOutData.length > 0 ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {["Breakfast", "Lunch", "Snacks", "Dinner"].map((mealType) => {
+                    const data = optOutData.find(d => d.meal_type === mealType);
+                    const count = data?.count || 0;
+                    return (
+                      <Card key={mealType} className="bg-white dark:bg-gray-900">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium text-muted-foreground">
+                            {mealType}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-3xl font-bold text-orange-600">{count}</div>
+                          <p className="text-xs text-muted-foreground mt-1">students skipping</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 text-center">Opt-out Distribution</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={optOutData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="meal_type" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="hsl(25 95% 60%)" name="Students Opting Out" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-lg">No students have opted out of meals today.</p>
+                <p className="text-sm mt-2">All students are expected to take their meals.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Token Validation Section */}
         <Card className="mb-8 shadow-xl border-2 border-primary/20">
