@@ -183,7 +183,13 @@ const AdminDashboard = () => {
         
         error = updateError;
       } else {
-        // Insert new menu
+        // Insert new menu with college_name
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("college_name")
+          .eq("id", user.id)
+          .single();
+
         const { error: insertError } = await supabase
           .from("daily_menus")
           .insert({
@@ -193,6 +199,7 @@ const AdminDashboard = () => {
             snacks: menuData.snacks || null,
             dinner: menuData.dinner || null,
             created_by: user.id,
+            college_name: profile?.college_name || "default",
           });
         
         error = insertError;
