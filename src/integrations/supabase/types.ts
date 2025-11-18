@@ -17,6 +17,7 @@ export type Database = {
       daily_menus: {
         Row: {
           breakfast: string | null
+          college_name: string
           created_at: string | null
           created_by: string | null
           dinner: string | null
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           breakfast?: string | null
+          college_name?: string
           created_at?: string | null
           created_by?: string | null
           dinner?: string | null
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           breakfast?: string | null
+          college_name?: string
           created_at?: string | null
           created_by?: string | null
           dinner?: string | null
@@ -88,16 +91,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          college_name: string
           created_at: string | null
           full_name: string | null
           id: string
         }
         Insert: {
+          college_name?: string
           created_at?: string | null
           full_name?: string | null
           id: string
         }
         Update: {
+          college_name?: string
           created_at?: string | null
           full_name?: string | null
           id?: string

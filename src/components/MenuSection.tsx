@@ -37,7 +37,7 @@ const MenuSection = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'daily_menus'
+          table: 'daily_menus',
         },
         () => {
           fetchTodayMenu();
@@ -52,6 +52,8 @@ const MenuSection = () => {
 
   const fetchTodayMenu = async () => {
     const today = new Date().toISOString().split('T')[0];
+    
+    // Menus are automatically filtered by college through RLS
     const { data } = await supabase
       .from('daily_menus')
       .select('breakfast, lunch, snacks, dinner')
