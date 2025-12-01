@@ -55,6 +55,7 @@ export type Database = {
       }
       meal_preferences: {
         Row: {
+          college_name: string
           created_at: string | null
           id: string
           meal_date: string
@@ -66,6 +67,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          college_name?: string
           created_at?: string | null
           id?: string
           meal_date?: string
@@ -77,6 +79,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          college_name?: string
           created_at?: string | null
           id?: string
           meal_date?: string
@@ -112,6 +115,7 @@ export type Database = {
       }
       tokens: {
         Row: {
+          college_name: string
           created_at: string | null
           id: string
           is_used: boolean | null
@@ -123,6 +127,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          college_name?: string
           created_at?: string | null
           id?: string
           is_used?: boolean | null
@@ -134,6 +139,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          college_name?: string
           created_at?: string | null
           id?: string
           is_used?: boolean | null

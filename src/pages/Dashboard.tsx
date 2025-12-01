@@ -25,6 +25,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [userName, setUserName] = useState<string>("");
+  const [collegeName, setCollegeName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [generatingToken, setGeneratingToken] = useState(false);
   const [currentToken, setCurrentToken] = useState<Token | null>(null);
@@ -60,15 +61,16 @@ const Dashboard = () => {
       return;
     }
 
-    // Get user's name
+    // Get user's name and college
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, college_name")
       .eq("id", user.id)
       .single();
 
     setUser(user);
     setUserName(profileData?.full_name || "User");
+    setCollegeName(profileData?.college_name || "");
     fetchLatestToken(user.id);
     fetchMealPreferences(user.id);
     setLoading(false);
@@ -115,12 +117,13 @@ const Dashboard = () => {
         
         if (error) throw error;
       } else {
-        // Insert new
+        // Insert new with college_name
         const { error } = await supabase
           .from("meal_preferences")
           .insert({
             user_id: user.id,
             meal_date: today,
+            college_name: collegeName,
             ...newPreferences,
           });
         
@@ -211,6 +214,7 @@ const Dashboard = () => {
           token_code: tokenCode,
           qr_code_data: tokenCode,
           is_used: false,
+          college_name: collegeName,
         })
         .select("id, token_code, meal_type, is_used, created_at")
         .single();
@@ -262,7 +266,12 @@ const Dashboard = () => {
                   {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-medium hidden sm:block">{userName}</span>
+              <div className="hidden sm:block">
+                <div className="font-medium">{userName}</div>
+                {collegeName && (
+                  <div className="text-xs text-white/80">{collegeName}</div>
+                )}
+              </div>
             </div>
             <Button variant="secondary" onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
