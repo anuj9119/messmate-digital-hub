@@ -32,6 +32,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string>("");
+  const [collegeName, setCollegeName] = useState<string>("");
   const [tokenStats, setTokenStats] = useState({ total: 0, used: 0, unused: 0 });
   const [mealTypeData, setMealTypeData] = useState<MealTypeData[]>([]);
   const [menuData, setMenuData] = useState({
@@ -72,14 +73,15 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Get admin's name
+    // Get admin's name and college
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, college_name")
       .eq("id", user.id)
       .single();
 
     setUserName(profileData?.full_name || "Admin");
+    setCollegeName(profileData?.college_name || "");
     setLoading(false);
   };
 
@@ -388,7 +390,12 @@ const AdminDashboard = () => {
                   {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <span className="font-medium hidden sm:block">{userName}</span>
+              <div className="hidden sm:block">
+                <div className="font-medium">{userName}</div>
+                {collegeName && (
+                  <div className="text-xs text-white/80">{collegeName}</div>
+                )}
+              </div>
             </div>
             <Button variant="secondary" onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
