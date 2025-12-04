@@ -70,7 +70,8 @@ const Dashboard = () => {
 
     setUser(user);
     setUserName(profileData?.full_name || "User");
-    setCollegeName(profileData?.college_name || "");
+    const userCollege = profileData?.college_name || "default";
+    setCollegeName(userCollege);
     fetchLatestToken(user.id);
     fetchMealPreferences(user.id);
     setLoading(false);

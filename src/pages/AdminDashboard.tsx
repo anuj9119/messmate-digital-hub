@@ -81,7 +81,7 @@ const AdminDashboard = () => {
       .single();
 
     setUserName(profileData?.full_name || "Admin");
-    setCollegeName(profileData?.college_name || "");
+    setCollegeName(profileData?.college_name || "default");
     setLoading(false);
   };
 
