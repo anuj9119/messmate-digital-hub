@@ -173,6 +173,17 @@ const Auth = () => {
             <TabsContent value="login">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="login-name">Full Name</Label>
+                  <Input
+                    id="login-name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="login-college">College Name</Label>
                   <Input
                     id="login-college"
