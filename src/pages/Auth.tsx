@@ -17,21 +17,10 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [collegeName, setCollegeName] = useState("");
   const [role, setRole] = useState<"student" | "admin">("student");
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!collegeName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter your college name",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setLoading(true);
 
     try {
@@ -41,8 +30,7 @@ const Auth = () => {
         options: {
           data: { 
             full_name: fullName,
-            role: role,
-            college_name: collegeName.trim()
+            role: role
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -74,16 +62,6 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!collegeName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please select your college name",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setLoading(true);
 
     try {
@@ -93,34 +71,6 @@ const Auth = () => {
       });
 
       if (error) throw error;
-
-      // Fetch user profile to verify college
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("college_name")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profileError) {
-        await supabase.auth.signOut();
-        toast({
-          title: "Error",
-          description: "Failed to fetch user profile",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Verify college name matches
-      if (profileData.college_name !== collegeName.trim()) {
-        await supabase.auth.signOut();
-        toast({
-          title: "Error",
-          description: "User not exist in this college",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Check user role
       const { data: roleData } = await supabase
@@ -184,17 +134,6 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-college">College Name</Label>
-                  <Input
-                    id="login-college"
-                    type="text"
-                    placeholder="Enter your college name"
-                    value={collegeName}
-                    onChange={(e) => setCollegeName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <Input
                     id="login-email"
@@ -232,17 +171,6 @@ const Auth = () => {
                     placeholder="Enter your full name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-college">College Name</Label>
-                  <Input
-                    id="signup-college"
-                    type="text"
-                    placeholder="Enter your college name"
-                    value={collegeName}
-                    onChange={(e) => setCollegeName(e.target.value)}
                     required
                   />
                 </div>
