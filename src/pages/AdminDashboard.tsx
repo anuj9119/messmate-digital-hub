@@ -30,9 +30,8 @@ interface OptOutData {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string>("");
-  const [collegeName, setCollegeName] = useState<string>("");
   const [tokenStats, setTokenStats] = useState({ total: 0, used: 0, unused: 0 });
   const [mealTypeData, setMealTypeData] = useState<MealTypeData[]>([]);
   const [menuData, setMenuData] = useState({
@@ -73,15 +72,14 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Get admin's name and college
+    // Get admin's name
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("full_name, college_name")
+      .select("full_name")
       .eq("id", user.id)
       .single();
 
     setUserName(profileData?.full_name || "Admin");
-    setCollegeName(profileData?.college_name || "default");
     setLoading(false);
   };
 
@@ -185,13 +183,7 @@ const AdminDashboard = () => {
         
         error = updateError;
       } else {
-        // Insert new menu with college_name
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("college_name")
-          .eq("id", user.id)
-          .single();
-
+        // Insert new menu
         const { error: insertError } = await supabase
           .from("daily_menus")
           .insert({
@@ -201,7 +193,6 @@ const AdminDashboard = () => {
             snacks: menuData.snacks || null,
             dinner: menuData.dinner || null,
             created_by: user.id,
-            college_name: profile?.college_name || "default",
           });
         
         error = insertError;
@@ -392,9 +383,6 @@ const AdminDashboard = () => {
               </Avatar>
               <div className="hidden sm:block">
                 <div className="font-medium">{userName}</div>
-                {collegeName && (
-                  <div className="text-xs text-white/80">{collegeName}</div>
-                )}
               </div>
             </div>
             <Button variant="secondary" onClick={handleSignOut}>
